@@ -68,7 +68,7 @@ kill connection_id;
 
 connection_id 可以通过show processlist; 或者select connection_id(); 查询到
 
-```plain text
+```sql
  show processlist;
 +------+------------+---------------------+-----------------+---------------+---------+------+-------+------+
 | Id   | User       | Host                | Cluster         | Db            | Command | Time | State | Info |
