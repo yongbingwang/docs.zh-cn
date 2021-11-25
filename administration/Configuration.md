@@ -17,9 +17,9 @@
 |audit_log_roll_num|90|审计日志保留的数目|
 |audit_log_modules|"slow_query", "query"|审计日志打印的模块，默认保留slow_query和query|
 |qe_slow_log_ms|5000|Slow query的认定时长，默认5000ms|
-|audit_log_roll_interval|DAY|审计日志拆分的时间间隔|
+|audit_log_roll_interval|DAY|审计日志拆分的时间间隔, DAY 或者 HOUR|
 |audit_log_delete_age|30d|审计日志删除的间隔|
-|audit_log_roll_mode|TIME-DAY|审计日志拆分的时间间隔|
+|audit_log_roll_mode|TIME-DAY|审计日志拆分模式|
 |label_keep_max_second|259200|label保留时长，默认3天，保留太久会消耗很多内存|
 |history_job_keep_max_second|604800|历史任务最大的保留时长，例如schema change任务，默认7天|
 |label_clean_interval_second|14400|label清理的间隔|
@@ -165,7 +165,8 @@
 |min_file_descriptor_number|60000|BE进程的文件句柄limit要求的下线|
 |index_stream_cache_capacity|10737418240|BloomFilter/Min/Max等统计信息缓存的容量|
 |storage_page_cache_limit|20G|PageCache的容量|
-|disable_storage_page_cache|false|是否开启PageCache|
+|disable_storage_page_cache|true|表示关闭PageCache|
+|base_compaction_start_hour|20|BaseCompaction开启的时间|
 |base_compaction_check_interval_seconds|60|BaseCompaction线程轮询的间隔|
 |base_compaction_num_cumulative_deltas|5|BaseCompaction触发条件之一：Cumulative文件数目要达到的限制|
 |base_compaction_num_threads_per_disk|1|每个磁盘BaseCompaction线程的数目|

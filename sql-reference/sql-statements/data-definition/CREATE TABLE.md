@@ -25,66 +25,71 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     语法：
 
     ```sql
-    `col_name col_type [agg_type] [NULL | NOT NULL] [DEFAULT "default_value"]`
+    col_name col_type [agg_type] [NULL | NOT NULL] [DEFAULT "default_value"]
     ```
 
     说明：
 
     ```plain text
     col_name：列名称
+    ```
+
+    ```plain text
     col_type：列类型
 
-    TINYINT（1字节）
+    具体的列类型以及范围等信息如下：
+
+    * TINYINT（1字节）
     范围：-2^7 + 1 ~ 2^7 - 1
 
-    SMALLINT（2字节）
+    * SMALLINT（2字节）
     范围：-2^15 + 1 ~ 2^15 - 1
 
-    INT（4字节）
+    * INT（4字节）
     范围：-2^31 + 1 ~ 2^31 - 1
 
-    BIGINT（8字节）
+    * BIGINT（8字节）
     范围：-2^63 + 1 ~ 2^63 - 1
 
-    LARGEINT（16字节）
+    * LARGEINT（16字节）
     范围：-2^127 + 1 ~ 2^127 - 1
 
-    FLOAT（4字节）
+    * FLOAT（4字节）
     支持科学计数法
 
-    DOUBLE（12字节）
+    * DOUBLE（12字节）
     支持科学计数法
 
-    DECIMAL[(precision, scale)] (16字节)
+    * DECIMAL[(precision, scale)] (16字节)
     保证精度的小数类型。默认是 DECIMAL(10, 0)
-
-    precision: 1 ~ 27
-
-    scale: 0 ~ 9
-
-    其中整数部分为 1 ~ 18
+      precision: 1 ~ 38
+      scale: 0 ~ precision
+    其中整数部分为：precision - scale
     不支持科学计数法
 
-    DATE（3字节）
+    * DATE（3字节）
     范围：0000-01-01 ~ 9999-12-31
 
-    DATETIME（8字节）
+    * DATETIME（8字节）
     范围：0000-01-01 00:00:00 ~ 9999-12-31 23:59:59
 
-    CHAR[(length)]
+    * CHAR[(length)]
     定长字符串。长度范围：1 ~ 255。默认为1
 
-    VARCHAR[(length)]
+    * VARCHAR[(length)]
     变长字符串。长度范围：1 ~ 65533
 
-    HLL (1~16385个字节)
-    hll列类型，不需要指定长度和默认值、长度根据数据的聚合
-    程度系统内控制，并且HLL列只能通过配套的hll_union_agg、Hll_cardinality、hll_hash进行查询或使用
+    * HLL (1~16385个字节)
+    hll列类型，不需要指定长度和默认值，长度根据数据的聚合程度系统内控制，并且HLL列只能通过配套的hll_union_agg、Hll_cardinality、hll_hash进行查询或使用
 
-    BITMAP
+    * BITMAP
     bitmap列类型，不需要指定长度和默认值。表示整型的集合，元素最大支持到2^64 - 1
+    ```
 
+    ```plain text
     agg_type：聚合类型，如果不指定，则该列为 key 列。否则，该列为 value 列
+
+    支持的聚合类型如下：
 
     * SUM、MAX、MIN、REPLACE
 
@@ -92,13 +97,16 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
 
     * BITMAP_UNION(仅用于 BITMAP 列，为 BITMAP 独有的聚合方式)、
 
-    * REPLACE_IF_NOT_NULL：这个聚合类型的含义是当且仅当新导入数据是非NULL值时会发生替换行为，如果新导入的数据是NULL，那么StarRocks仍然会保留原值。注意：如果用在建表时REPLACE_IF_NOT_NULL列指定了NOT NULL，那么StarRocks仍然会将其转化NULL，不会向用户报错。用户可以借助这个类型完成部分列导入的功能。
-    * 该类型只对聚合模型(key_desc的type为AGGREGATE KEY)有用，其它模型不需要指这个。
+    * REPLACE_IF_NOT_NULL：这个聚合类型的含义是当且仅当新导入数据是非NULL值时会发生替换行为，如果新导入的数据是NULL，那么StarRocks仍然会保留原值。
+      注意：如果用在建表时REPLACE_IF_NOT_NULL列指定了NOT NULL，那么StarRocks仍然会将其转化NULL，不会向用户报错。用户可以借助这个类型完成「部分列导入」的功能。
+      该类型只对聚合模型(key_desc的type为AGGREGATE KEY)有用，其它模型不能指这个。
+    ```
 
+    ```plain text
     是否允许为NULL: 默认不允许为 NULL。NULL 值在导入数据中用 \N 来表示
 
     注意：
-    BITMAP_UNION聚合类型列在导入时的原始数据类型必须是TINYINT,SMALLINT,INT,BIGINT。
+    BITMAP_UNION聚合类型列在导入时的原始数据类型必须是TINYINT,SMALLINT, INT, BIGINT。
     ```
 
 2. index_definition
@@ -106,13 +114,16 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     语法：
 
     ```sql
-    `INDEX index_name (col_name[, col_name, ...]) [USING BITMAP] COMMENT 'xxxxxx'
+    INDEX index_name (col_name[, col_name, ...]) [USING BITMAP] COMMENT 'xxxxxx'
     ```
 
     说明：
+
     index_name：索引名称
+
     col_name：列名
-    注意：
+
+    > 注意：
     当前仅支持BITMAP索引， BITMAP索引仅支持应用于单列
 
 3. ENGINE 类型
@@ -196,11 +207,11 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     key_type支持以下类型：
     AGGREGATE KEY:key列相同的记录，value列按照指定的聚合类型进行聚合，
     适合报表、多维分析等业务场景。
-    UNIQUE KEY:key列相同的记录，value列按导入顺序进行覆盖，
+    UNIQUE KEY/PRIMARY KEY:key列相同的记录，value列按导入顺序进行覆盖，
     适合按key列进行增删改查的点查询业务。
     DUPLICATE KEY:key列相同的记录，同时存在于StarRocks中，
     适合存储明细数据或者数据无聚合特性的业务场景。
-    默认为DUPLICATE KEY，key列为列定义中前36个字节, 如果前36个字节的列数小于3，将使用前三列。
+    默认为DUPLICATE KEY，数据按key列做排序。
 
     注意：
     除AGGREGATE KEY外，其他key_type在建表时，value列不需要指定聚合类型。
@@ -246,7 +257,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     PARTITION BY RANGE (k1, k2, k3, ...)
     (
     PARTITION partition_name1 VALUES [("k1-lower1", "k2-lower1", "k3-lower1",...), ("k1-upper1", "k2-upper1", "k3-upper1", ...)),
-    PARTITION partition_name2 VALUES [("k1-lower1-2", "k2-lower1-2", ...), ("k1-upper1-2", MAXVALUE, ))
+    PARTITION partition_name2 VALUES [("k1-lower1-2", "k2-lower1-2", ...), ("k1-upper1-2", MAXVALUE, )),
     "k3-upper1-2", ...
     )
     ```
@@ -267,7 +278,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     ```
 
     说明：
-    使用指定的 key 列进行哈希分桶。默认分区数为10
+    使用指定的 key 列进行哈希分桶。默认分桶数为10
 
     建议:建议使用Hash分桶方式
 
@@ -292,7 +303,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     replication_num:        指定分区的副本数。默认为 3
 
     当表为单分区表时，这些属性为表的属性。
-    当表为两级分区时，这些属性为附属于每一个分区。
+    当表为两级分区时，这些属性附属于每一个分区。
     如果希望不同分区有不同属性。可以通过 ADD PARTITION 或 MODIFY PARTITION 进行操作
 
     2.如果 Engine 类型为 olap, 可以指定某列使用 bloom filter 索引
@@ -377,13 +388,33 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     ```sql
     CREATE TABLE example_db.table_hash
     (
-    k1 BIGINT,
-    k2 LARGEINT,
-    v1 VARCHAR(2048) REPLACE,
-    v2 SMALLINT SUM DEFAULT "10"
+        k1 BIGINT,
+        k2 LARGEINT,
+        v1 VARCHAR(2048) REPLACE,
+        v2 SMALLINT SUM DEFAULT "10"
     )
     ENGINE=olap
     UNIQUE KEY(k1, k2)
+    DISTRIBUTED BY HASH (k1, k2) BUCKETS 32
+    PROPERTIES(
+        "storage_type"="column"，
+        "storage_medium" = "SSD",
+        "storage_cooldown_time" = "2015-06-04 00:00:00"
+    );
+    ```
+
+    或
+
+    ```sql
+    CREATE TABLE example_db.table_hash
+    (
+        k1 BIGINT,
+        k2 LARGEINT,
+        v1 VARCHAR(2048) REPLACE,
+        v2 SMALLINT SUM DEFAULT "10"
+    )
+    ENGINE=olap
+    PRIMARY KEY(k1, k2)
     DISTRIBUTED BY HASH (k1, k2) BUCKETS 32
     PROPERTIES(
         "storage_type"="column"，
@@ -477,30 +508,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     )
     ```
 
-5. 创建一个数据文件存储在HDFS上的 broker 外部表, 数据使用 "|" 分割，"\n" 换行
-
-    ```sql
-    CREATE EXTERNAL TABLE example_db.table_broker (
-    k1 DATE,
-    k2 INT,
-    k3 SMALLINT,
-    k4 VARCHAR(2048),
-    k5 DATETIME
-    )
-    ENGINE=broker
-    PROPERTIES (
-        "broker_name" = "hdfs",
-        "path" = "hdfs://hdfs_host:hdfs_port/data1,hdfs://hdfs_host:hdfs_port/data2,hdfs://hdfs_host:hdfs_port/data3%2c4",
-        "column_separator" = "|",
-        "line_delimiter" = "\n"
-    )
-    BROKER PROPERTIES (
-        "username" = "hdfs_user",
-        "password" = "hdfs_password"
-    )
-    ```
-
-6. 创建一张含有HLL列的表
+5. 创建一张含有HLL列的表
 
     ```sql
     CREATE TABLE example_db.example_table
@@ -516,7 +524,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     PROPERTIES ("storage_type"="column");
     ```
 
-7. 创建一张含有BITMAP_UNION聚合类型的表（v1和v2列的原始数据类型必须是TINYINT,SMALLINT,INT）
+6. 创建一张含有BITMAP_UNION聚合类型的表（v1和v2列的原始数据类型必须是TINYINT,SMALLINT,INT）
 
     ```sql
     CREATE TABLE example_db.example_table
@@ -532,7 +540,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     PROPERTIES ("storage_type"="column");
     ```
 
-8. 创建两张支持Colocat Join的表t1 和t2
+7. 创建两张支持Colocat Join的表t1 和t2
 
     ```sql
     CREATE TABLE `t1` (
@@ -556,25 +564,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     );
     ```
 
-9. 创建一个数据文件存储在BOS上的 broker 外部表
-
-    ```sql
-    CREATE EXTERNAL TABLE example_db.table_broker (
-    k1 DATE
-    )
-    ENGINE=broker
-    PROPERTIES (
-        "broker_name" = "bos",
-        "path" = "bos://my_bucket/input/file",
-    )
-    BROKER PROPERTIES (
-        "bos_endpoint" = "http://bj.bcebos.com",
-        "bos_accesskey" = "xxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "bos_secret_accesskey"="yyyyyyyyyyyyyyyyyyyy"
-    )
-    ```
-
-10. 创建一个带有bitmap 索引的表
+8. 创建一个带有bitmap 索引的表
 
     ```sql
     CREATE TABLE example_db.table_hash
@@ -592,7 +582,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     PROPERTIES ("storage_type"="column");
     ```
 
-11. 创建一个动态分区表(需要在FE配置中开启动态分区功能)，该表每天提前创建3天的分区，并删除3天前的分区。例如今天为`2020-01-08`，则会创建分区名为`p20200108`, `p20200109`, `p20200110`, `p20200111`的分区. 分区范围分别为:
+9. 创建一个动态分区表(需要在FE配置中开启动态分区功能)，该表每天提前创建3天的分区，并删除3天前的分区。例如今天为`2020-01-08`，则会创建分区名为`p20200108`, `p20200109`, `p20200110`, `p20200111`的分区. 分区范围分别为:
 
     ```plain text
     [types: [DATE]; keys: [2020-01-08]; ‥types: [DATE]; keys: [2020-01-09]; )
@@ -629,7 +619,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     );
     ```
 
-12. Create a table with rollup index
+10. Create a table with rollup index
 
     ```sql
     CREATE TABLE example_db.rolup_index_table
@@ -649,7 +639,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     )
     PROPERTIES("replication_num" = "3");
 
-13. 创建一个内存表
+11. 创建一个内存表
 
     ```sql
     CREATE TABLE example_db.table_hash
@@ -667,7 +657,7 @@ CREATE [EXTERNAL] TABLE [IF NOT EXISTS] [database.]table_name
     PROPERTIES ("in_memory"="true");
     ```
 
-14. 创建一个hive外部表
+12. 创建一个hive外部表
 
     ```SQL
     CREATE TABLE example_db.table_hive

@@ -15,7 +15,7 @@
 1. 业务方需要获取某个商品在某天的销售额是多少，那么仅需要在维度（item\_id, sold\_time）维度上对 price 进行聚合即可。
 2. 分析某个人在某天对某个商品的购买明细数据。
 
-在现有的 StarRocks 数据模型中，如果仅建立一个聚合模型的表，比如（item\_id, sold\_time, customer\_id, sum(price)）。由于聚合损失了数据的部分信息，无法满足用户对明细数据的分析需求。如果仅建立一个 Duplicate 模型，虽可以满足任意维度的分析需求，但由于不支持 Rollup， 分析性能不佳，无法快速完成分析。如果同时建立一个聚合模型和一个 Duplicate 模型，虽可以满足性能和任意维度分析，但两表之间本身无关联，需要业务方自行选择分析表。不灵活也不易用。
+在现有的 StarRocks 数据模型中，如果仅建立一个聚合模型的表，比如（item\_id, sold\_time, customer\_id, sum(price)）。由于聚合损失了数据的部分信息，无法满足用户对明细数据的分析需求。如果仅建立一个 Duplicate 模型，虽可以满足任意维度的分析需求，但由于不支持 Rollup，分析性能不佳，无法快速完成分析。如果同时建立一个聚合模型和一个 Duplicate 模型，虽可以满足性能和任意维度分析，但两表之间本身无关联，需要业务方自行选择分析表。不灵活也不易用。
 
 ## 如何使用
 
@@ -27,19 +27,21 @@
 CREATE MATERIALIZED VIEW materialized_view_name
 AS SELECT id, SUM(clicks) AS sum_clicks
 FROM  database_name.base_table
-GROUP BY id ORDER BY id’
+GROUP BY id
 ~~~
 
- 物化视图的创建当前为异步操作。创建物化视图的语法会立即返回结果，但物化视图的生成操作可能仍在运行。用户可以使用DESC "base\_table\_name" ALL命令查看当前BASE表的物化视图。可以使用 SHOW ALTER TABLE MATERIALIZED VIEW FROM "database\_name"命令查看当前以及历史物化视图的处理状态。
+ 物化视图的创建当前为异步操作。创建物化视图的语法会立即返回结果，但物化视图的生成操作可能仍在运行。用户可以使用DESC "base_table_name" ALL命令查看当前BASE表的物化视图。可以使用 SHOW ALTER TABLE MATERIALIZED VIEW FROM "database_name"命令查看当前以及历史物化视图的处理状态。
 
 * **限制：**
 
   * base表中的分区列，必须存在于创建物化视图的group by聚合列中
+    >列如：base表按天分区，物化视图则只能按天分区列做group by聚合。不能够建立按月粒度group by的物化视图。
   * 目前只支持对单表进行构建物化视图，不支持多表JOIN
   * 聚合类型表（Aggregation)，不支持对key列执行聚合算子操作，仅支持对value列进行聚合，且聚合算子类型不能改变。
   * 物化视图中至少包含一个KEY列
   * 不支持表达式计算
   * 不支持指定物化视图查询
+  * 不支持 Order By
 
 ### **删除物化视图**
 
@@ -84,7 +86,7 @@ numNodes=1
 tuple ids: 0
 ~~~
 
-其中的RollUp表字段表示到底命中了哪个物化视图。其中的PREAGGREGATION 字段如果是On，就表明查询时不需要在StarRocks存储引擎中现场聚合，查询会更快，如果PREAGGREGATION 字段是Off，后面会显示原因， 比如 PREAGGREGATION: OFF. Reason:  The aggregate operator does not match，表示因为查询的聚合函数和物化视图中定义的聚合函数不一致，所以在StarRocks存储引擎中无法使用物化视图，需要现场聚合。
+其中的RollUp表字段表示到底命中了哪个物化视图。其中的PREAGGREGATION 字段如果是On，就表明查询时不需要在StarRocks存储引擎中现场聚合，查询会更快，如果PREAGGREGATION 字段是Off，后面会显示原因，比如 PREAGGREGATION: OFF. Reason:  The aggregate operator does not match，表示因为查询的聚合函数和物化视图中定义的聚合函数不一致，所以在StarRocks存储引擎中无法使用物化视图，需要现场聚合。
 
 ### **导入数据**
 
@@ -94,7 +96,7 @@ tuple ids: 0
 
 ### **物化视图函数支持**
 
-当前的物化视图只支持对单个表的聚合。目前支持以下[聚合函数](https://cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions)：
+当前的物化视图只支持对单个表的聚合。目前支持以下聚合函数：
 
 * COUNT
 * MAX

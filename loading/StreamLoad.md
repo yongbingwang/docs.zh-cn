@@ -60,8 +60,8 @@ curl --location-trusted -u root -T date -H "label:123" \
 Stream Load 中所有与导入任务相关的参数均设置在 Header 中。下面介绍其中部分参数的意义：
 
 * **label** :导入任务的标签，相同标签的数据无法多次导入。用户可以通过指定Label的方式来避免一份数据重复导入的问题。当前StarRocks系统会保留最近30分钟内成功完成的任务的Label。
-* **column-separator** ：用于指定导入文件中的列分隔符，默认为\\t。如果是不可见字符，则需要加\\x作为前缀，使用十六进制来表示分隔符。如Hive文件的分隔符\\x01，需要指定为\-H "column-separator:\\x01"
-* **row-delimiter**: 用户指定导入文件中的行分隔符，默认为\\n。
+* **column_separator** ：用于指定导入文件中的列分隔符，默认为\\t。如果是不可见字符，则需要加\\x作为前缀，使用十六进制来表示分隔符。如Hive文件的分隔符\\x01，需要指定为\-H "column-separator:\\x01"
+* **row_delimiter**: 用户指定导入文件中的行分隔符，默认为\\n。
 * **columns** ：用于指定导入文件中的列和 table 中的列的对应关系。如果源文件中的列正好对应表中的内容，那么无需指定该参数。如果源文件与表schema不对应，那么需要这个参数来配置数据转换规则。这里有两种形式的列，一种是直接对应于导入文件中的字段，可直接使用字段名表示；一种需要通过计算得出。举几个例子帮助理解：
 
   * 例1：表中有3列"c1, c2, c3"，源文件中的3列依次对应的是"c3,c2,c1"; 那么需要指定\-H "columns: c3, c2, c1"
@@ -72,12 +72,12 @@ Stream Load 中所有与导入任务相关的参数均设置在 Header 中。下
 
   * 例1：只导入k1列等于20180601的数据，那么可以在导入时指定\-H "where: k1 = 20180601"。
 
-* **max-filter-ratio**：最大容忍可过滤（数据不规范等原因而过滤）的数据比例。默认零容忍。数据不规范不包括通过 where 条件过滤掉的行。
+* **max_filter_ratio**：最大容忍可过滤（数据不规范等原因而过滤）的数据比例。默认零容忍。数据不规范不包括通过 where 条件过滤掉的行。
 * **partitions**: 用于指定这次导入所涉及的partition。如果用户能够确定数据对应的partition，推荐指定该项。不满足这些分区的数据将被过滤掉。比如指定导入到p1、p2分区：\-H "partitions: p1, p2"。
 * **timeout**: 指定导入的超时时间。单位秒，默认是 600 秒。可设置范围为 1 秒 ~ 259200 秒。
-* **strict-mode**: 用户指定此次导入是否开启严格模式，默认为开启。关闭方式为：\-H "strict-mode: false"。
+* **strict_mode**: 用户指定此次导入是否开启严格模式，默认为开启。关闭方式为：\-H "strict_mode: false"。
 * **timezone**: 指定本次导入所使用的时区。默认为东八区。该参数会影响所有导入涉及的和时区有关的函数结果。
-* **exec-mem-limit**: 导入内存限制。默认为 2GB。单位是「字节」。
+* **exec_mem_limit**: 导入内存限制。默认为 2GB。单位是「字节」。
 
 **返回结果：**
 
@@ -85,43 +85,27 @@ Stream Load 中所有与导入任务相关的参数均设置在 Header 中。下
 
 ~~~json
 {
-
-"TxnId": 1003,
-
-"Label": "b6f3bc78-0d2c-45d9-9e4c-faa0a0149bee",
-
-"Status": "Success",
-
-"ExistingJobStatus": "FINISHED", // optional
-
-"Message": "OK",
-
-"NumberTotalRows": 1000000,
-
-"NumberLoadedRows": 1000000,
-
-"NumberFilteredRows": 1,
-
-"NumberUnselectedRows": 0,
-
-"LoadBytes": 40888898,
-
-"LoadTimeMs": 2144,
-
-"ErrorURL": "[http://192.168.1.1:8042/api/_load_error_log?file=__shard_0/error_log_insert_stmt_db18266d4d9b4ee5-abb00ddd64bdf005_db18266d4d9b4ee5_abb00ddd64bdf005](http://192.168.1.1:8042/api/_load_error_log?file=__shard_0/error_log_insert_stmt_db18266d4d9b4ee5-abb00ddd64bdf005_db18266d4d9b4ee5_abb00ddd64bdf005)"
-
+    "TxnId": 1003,
+    "Label": "b6f3bc78-0d2c-45d9-9e4c-faa0a0149bee",
+    "Status": "Success",
+    "ExistingJobStatus": "FINISHED", // optional
+    "Message": "OK",
+    "NumberTotalRows": 1000000,
+    "NumberLoadedRows": 1000000,
+    "NumberFilteredRows": 1,
+    "NumberUnselectedRows": 0,
+    "LoadBytes": 40888898,
+    "LoadTimeMs": 2144,
+    "ErrorURL": "[http://192.168.1.1:8042/api/_load_error_log?file=__shard_0/error_log_insert_stmt_db18266d4d9b4ee5-abb00ddd64bdf005_db18266d4d9b4ee5_abb00ddd64bdf005](http://192.168.1.1:8042/api/_load_error_log?file=__shard_0/error_log_insert_stmt_db18266d4d9b4ee5-abb00ddd64bdf005_db18266d4d9b4ee5_abb00ddd64bdf005)"
 }
 ~~~
 
 * TxnId：导入的事务ID。用户可不感知。
-  
 * Status: 导入最后的状态。
-
 * Success：表示导入成功，数据已经可见。
 * Publish Timeout：表述导入作业已经成功Commit，但是由于某种原因并不能立即可见。用户可以视作已经成功不必重试导入。
 * Label Already Exists：表明该Label已经被其他作业占用，可能是导入成功，也可能是正在导入。
 * 其他：此次导入失败，用户可以指定Label重试此次作业。
-
 * Message: 导入状态的详细说明。失败时会返回具体的失败原因。
 * NumberTotalRows: 从数据流中读取到的总行数。
 * NumberLoadedRows: 此次导入的数据行数，只有在Success时有效。
@@ -131,7 +115,7 @@ Stream Load 中所有与导入任务相关的参数均设置在 Header 中。下
 * LoadTimeMs: 此次导入所用的时间(ms)。
 * ErrorURL: 被过滤数据的具体内容，仅保留前1000条。如果导入任务失败，可以直接用以下方式获取被过滤的数据，并进行分析，以调整导入任务。
 
-  * ~~~bash
+    ~~~bash
     wget http://192.168.1.1:8042/api/_load_error_log?file=__shard_0/error_log_insert_stmt_db18266d4d9b4ee5-abb00ddd64bdf005_db18266d4d9b4ee5_abb00ddd64bdf005
     ~~~
 
@@ -149,11 +133,11 @@ Stream Load 的最佳使用场景是原始文件在内存中或者存储在本�
 
 ### 数据量
 
-由于Stream Load是由BE发起的导入并分发数据，建议的导入数据量在 1GB 到 10GB 之间。系统默认的最大Stream Load导入数据量为10GB，所以如果要导入超过10GB的文件需要修改BE的配置项streaming-load-max-mb。比如，待导入文件大小为15G，则修改BE配置 streaming-load-max-mb 为 16000 即可。
+由于Stream Load是由BE发起的导入并分发数据，建议的导入数据量在 1GB 到 10GB 之间。系统默认的最大Stream Load导入数据量为10GB，所以如果要导入超过10GB的文件需要修改BE的配置项streaming_load_max_mb。比如，待导入文件大小为15G，则可修改BE的该配置项大于15G,例如设置为 `streaming_load_max_mb = 16000` 即可。
 
 Stream Load的默认超时为300秒，按照StarRocks目前最大的导入限速来看，导入超过3GB大小的文件就需要修改导入任务默认的超时时间了。
 
-导入任务超时时间 = 导入数据量 / 10M/s （具体的平均导入速度需要用户根据自己的集群情况计算）
+`导入任务超时时间 = 导入数据量 / 10M/s` （具体的平均导入速度需要用户根据自己的集群情况计算）
 
 例如：导入一个 10GB 的文件，timeout应该设为1000s。
 
@@ -163,7 +147,7 @@ Stream Load的默认超时为300秒，按照StarRocks目前最大的导入限速
 
 **集群情况**：Stream Load 的并发数不受集群大小影响。
 
-* step1: 导入文件大小超过默认的最大导入大小10GB，所以要修改BE的配置文件BE.conf：
+* step1: 导入文件大小超过默认的最大导入大小10GB，所以要修改BE的配置文件BE.conf,例如将最大导入大小设置为16000：
 
 `streaming_load_max_mb = 16000`
 
@@ -181,7 +165,7 @@ curl --location-trusted -u user:password -T /home/store_sales \
 ### 代码集成示例
 
 * JAVA开发stream load，参考：[https://github.com/StarRocks/demo/MiscDemo/stream_load](https://github.com/StarRocks/demo/tree/master/MiscDemo/stream_load)
-* Spark 集成stream load，参考： [01_sparkStreaming2StarRocks](https://github.com/StarRocks/demo/blob/master/docs/cn/01_sparkStreaming2StarRocks.md)
+* Spark 集成stream load，参考： [01_sparkStreaming2StarRocks](https://github.com/StarRocks/demo/blob/master/docs/01_sparkStreaming2StarRocks.md)
 
 ---
 

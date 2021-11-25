@@ -190,7 +190,7 @@ REVOKE USAGE_PRIV ON RESOURCE "spark0" FROM "user0"@"%";
 
 FE底层通过执行`spark-submit`的命令去提交spark任务，因此需要为FE配置spark客户端，建议使用2.4.5或以上的spark2官方版本，[spark下载地址](https://archive.apache.org/dist/spark/)，下载完成后，请按步骤完成以下配置：
 
-* 配置 SPARK-HOME 环境变量
+* **配置 SPARK-HOME 环境变量**
   
     将spark客户端放在FE同一台机器上的目录下，并在FE的配置文件配置  `spark_home_default_dir`项指向此目录，此配置项默认为FE根目录下的 `lib/spark2x`路径，此项不可为空。
 
@@ -276,7 +276,7 @@ WITH RESOURCE resource_name
 ~~~sql
 LOAD LABEL db1.label1
 (
-    DATA INFILE("hdfs://abc.com:8888/user/palo/test/ml/file1")
+    DATA INFILE("hdfs://abc.com:8888/user/starRocks/test/ml/file1")
     INTO TABLE tbl1
     COLUMNS TERMINATED BY ","
     (tmp_c1,tmp_c2)
@@ -285,7 +285,7 @@ LOAD LABEL db1.label1
         id=tmp_c2,
         name=tmp_c1
     ),
-    DATA INFILE("hdfs://abc.com:8888/user/palo/test/ml/file2")
+    DATA INFILE("hdfs://abc.com:8888/user/starRocks/test/ml/file2")
     INTO TABLE tbl2
     COLUMNS TERMINATED BY ","
     (col1, col2)
@@ -386,7 +386,7 @@ WITH RESOURCE 'spark0'
 
 * **数据源为hive表时的导入**
   
-目前如果期望在导入流程中将hive表作为数据源，那么需要先新建一张类型为hive的外部表， 然后提交导入命令时指定外部表的表名即可。
+目前如果期望在导入流程中将hive表作为数据源，那么需要先新建一张类型为hive的外部表，然后提交导入命令时指定外部表的表名即可。
 
 * **导入流程构建全局字典**
   
@@ -431,7 +431,7 @@ LoadFinishTime: 2019-07-27 11:50:16
   
  `LOAD 进度 = 当前已完成所有replica导入的tablet个数 / 本次导入任务的总tablet个数* 100%`
 
-* 如果所有导入表均完成导入，此时 LOAD 的进度为 99%， 导入进入到最后生效阶段，整个导入完成后，LOAD 的进度才会改为 100%。
+* 如果所有导入表均完成导入，此时 LOAD 的进度为 99%，导入进入到最后生效阶段，整个导入完成后，LOAD 的进度才会改为 100%。
 
 * 导入进度并不是线性的。所以如果一段时间内进度没有变化，并不代表导入没有在执行。
 
@@ -483,29 +483,29 @@ LoadFinishTime: 2019-07-27 11:50:16
 
 使用 Spark Load 最适合的场景是原始数据在文件系统（HDFS）中，数据量在几十GB到TB级别。小数据量还是建议使用Stream Load或者Broker Load。
 
-* 完整spark load导入示例，参考github上的demo: [sparkLoad2StarRocks](https://github.com/StarRocks/demo/blob/master/docs/cn/03_sparkLoad2StarRocks.md)
+* 完整spark load导入示例，参考github上的demo: [sparkLoad2StarRocks](https://github.com/StarRocks/demo/blob/master/docs/03_sparkLoad2StarRocks.md)
 
 ---
 
 ## 常见问题
 
-* 使用Spark Load时没有在Spark客户端的spark-env.sh配置HADOOP-CONF-DIR环境变量。
+* 报错：When running with master 'yarn' either HADOOP-CONF-DIR or YARN-CONF-DIR must be set in the environment.
 
- 如果HADOOP-CONF-DIR环境变量没有设置，会报 When running with master 'yarn' either HADOOP-CONF-DIR or YARN-CONF-DIR must be set in the environment. 错误。
+使用Spark Load时没有在Spark客户端的spark-env.sh配置HADOOP-CONF-DIR环境变量。
 
-* 使用Spark Load时`spark_home_default_dir`配置项没有指定spark客户端根目录。
+* 提交Spark job时用到spark-submit命令，报错：Cannot run program "xxx/bin/spark-submit": error=2, No such file or directory
 
- 提交Spark job时用到spark-submit命令，如果spark-home-default-dir设置错误，会报 Cannot run program "xxx/bin/spark-submit": error=2, No such file or directory 错误。
+使用Spark Load时`spark_home_default_dir`配置项没有指定或者指定了错误的spark客户端根目录。
 
-* 使用Spark Load时spark-resource-path配置项没有指向打包好的zip文件。
+* 报错：File xxx/jars/spark-2x.zip does not exist 错误。
 
- 如果spark-resource-path没有设置正确，会报File xxx/jars/spark-2x.zip does not exist 错误。
+ 使用Spark Load时spark-resource-path配置项没有指向打包好的zip文件，检查指向文件路径和文件名词是否一致。
 
-* 使用Spark Load时yarn-client-path配置项没有指定yarn的可执行文件。
+* 报错：yarn client does not exist in path: xxx/yarn-client/hadoop/bin/yarn
 
- 如果yarn-client-path没有设置正确，会报yarn client does not exist in path: xxx/yarn-client/hadoop/bin/yarn 错误。
+ 使用Spark Load时yarn-client-path配置项没有指定yarn的可执行文件。
 
-* 使用CDH的Hadoop时，需要配置HADOOP_LIBEXEC_DIR环境变量。
- 由于hadoop-yarn和hadoop目录不同，默认libexec目录会找hadoop-yarn/bin/../libexec，而libexec在hadoop目录下。
+* 报错：Cannot execute hadoop-yarn/bin/../libexec/yarn-config.sh
+
+ 使用CDH的Hadoop时，需要配置HADOOP_LIBEXEC_DIR环境变量，由于hadoop-yarn和hadoop目录不同，默认libexec目录会找hadoop-yarn/bin/../libexec，而libexec在hadoop目录下。
  ```yarn application status```命令获取Spark任务状态报错导致导入作业失败。
- ```ERROR: Cannot execute hadoop-yarn/bin/../libexec/yarn-config.sh```

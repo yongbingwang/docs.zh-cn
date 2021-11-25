@@ -40,7 +40,7 @@ StarRocks-XX-1.0.0
 * Linux (Centos 7+)
 * Java 1.8+
 
-CPU需要支持AVX2指令集， cat /proc/cpuinfo |grep avx2有结果输出表明CPU支持，如果没有支持，建议更换机器，StarRocks使用向量化技术需要一定的指令集支持才能发挥效果。
+CPU需要支持AVX2指令集，cat /proc/cpuinfo |grep avx2有结果输出表明CPU支持，如果没有支持，建议更换机器，StarRocks使用向量化技术需要一定的指令集支持才能发挥效果。
 
 将StarRocks的二进制产品包分发到目标主机的部署路径并解压，可以考虑使用新建的StarRocks用户来管理。
 
@@ -52,7 +52,9 @@ FE的配置文件为StarRocks-XX-1.0.0/fe/conf/fe.conf, 默认配置已经足以
 
 ### FE单实例部署
 
+```bash
 cd StarRocks-XX-1.0.0/fe
+```
 
 第一步: 定制配置文件conf/fe.conf：
 
@@ -66,7 +68,7 @@ JAVA_OPTS = "-Xmx4096m -XX:+UseMembar -XX:SurvivorRatio=8 -XX:MaxTenuringThresho
 第二步: 创建元数据目录:
 
 ```bash
-mkdir -p starrocks-meta
+mkdir -p meta (1.19.x及以前的版本需要使用mkdir -p doris-meta)
 ```
 
 <br/>
@@ -103,7 +105,7 @@ bin/start_fe.sh --daemon
 
 第一步: 安装mysql客户端(如果已经安装，可忽略此步)：
 
-Ubuntu：sudo apt-get install mysql
+Ubuntu：sudo apt-get install mysql-client
 
 Centos：sudo yum install mysql-client
 <br/>
@@ -120,42 +122,25 @@ mysql -h 127.0.0.1 -P9030 -uroot
 第三步: 查看FE状态：
 
 ```Plain Text
-mysql> SHOW PROC '/frontends'\\G
+mysql> SHOW PROC '/frontends'\G
 
-***1\. row***
-
-Name: 172.16.139.24_9010_1594200991015
-
-IP: 172.16.139.24
-
-HostName: starrocks-sandbox01
-
-EditLogPort: 9010
-
-HttpPort: 8030
-
-QueryPort: 9030
-
-RpcPort: 9020
-
-Role: FOLLOWER
-
-IsMaster: true
-
-ClusterId: 861797858
-
-Join: true
-
-Alive: true
-
+************************* 1. row ************************
+             Name: 172.16.139.24_9010_1594200991015
+               IP: 172.16.139.24
+         HostName: starrocks-sandbox01
+      EditLogPort: 9010
+         HttpPort: 8030
+        QueryPort: 9030
+          RpcPort: 9020
+             Role: FOLLOWER
+         IsMaster: true
+        ClusterId: 861797858
+             Join: true
+            Alive: true
 ReplayedJournalId: 64
-
-LastHeartbeat: 2020-03-23 20:15:07
-
-IsHelper: true
-
-ErrMsg:
-
+    LastHeartbeat: 2020-03-23 20:15:07
+         IsHelper: true
+           ErrMsg:
 1 row in set (0.03 sec)
 ```
 
@@ -169,7 +154,7 @@ Role为FOLLOWER说明这是一个能参与选主的FE；IsMaster为true，说明
 
 ### FE的高可用集群部署
 
-FE的高可用集群采用主从复制架构, 可避免FE单点故障. FE采用了类raft的bdbje协议完成选主, 日志复制和故障切换. 在FE集群中, 多实例分为两种角色: follower和observer; 前者为复制协议的可投票成员, 参与选主和提交日志, 一般数量为奇数(2n+1), 使用多数派(n+1)确认, 可容忍少数派(n)故障; 而后者属于非投票成员, 用于异步订阅复制日志, observer的状态落后于follower, 类似其他复制协议中的leaner角色.
+FE的高可用集群采用主从复制架构, 可避免FE单点故障. FE采用了类raft的bdbje协议完成选主, 日志复制和故障切换. 在FE集群中, 多实例分为两种角色: follower和observer; 前者为复制协议的可投票成员, 参与选主和提交日志, 一般数量为奇数(2n+1), 使用多数派(n+1)确认, 可容忍少数派(n)故障; 而后者属于非投票成员, 用于异步订阅复制日志, observer的状态落后于follower, 类似其他复制协议中的learner角色.
 <br/>
 
 FE集群从follower中自动选出master节点, 所有更改状态操作都由master节点执行, 从FE的master节点可以读到最新的状态. 更改操作可以从非master节点发起, 继而转发给master节点执行,  非master节点记录最近一次更改操作在复制日志中的LSN, 读操作可以直接在非master节点上执行, 但需要等待非master节点的状态已经同步到最近一次更改操作的LSN, 因此读写非Master节点满足顺序一致性. Observer节点能够增加FE集群的读负载能力, 时效性要求放宽的非紧要用户可以读observer节点.
@@ -221,7 +206,7 @@ alter system drop observer "fe_host:edit_log_port";
 
 host为helper节点的IP，如果有多个IP，需要选取priority\_networks里的IP。port为edit\_log\_port，默认为9010。
 
-当FE再次启动时，无须指定--helper参数， 因为FE已经将其他FE的配置信息存储于本地目录, 因此可直接启动：
+当FE再次启动时，无须指定--helper参数，因为FE已经将其他FE的配置信息存储于本地目录, 因此可直接启动：
 
 ```shell
 ./bin/start_fe.sh --daemon
@@ -232,68 +217,38 @@ host为helper节点的IP，如果有多个IP，需要选取priority\_networks里
 第四步: 查看集群状态, 确认部署成功：
 
 ```Plain Text
-mysql> SHOW PROC '/frontends'\\G
+mysql> SHOW PROC '/frontends'\G
 
-***1\. row***
-
-Name: 172.26.108.172_9010_1584965098874
-
-IP: 172.26.108.172
-
+********************* 1. row **********************
+    Name: 172.26.108.172_9010_1584965098874
+      IP: 172.26.108.172
 HostName: starrocks-sandbox01
-
 ......
-
-Role: FOLLOWER
-
+    Role: FOLLOWER
 IsMaster: true
-
 ......
-
-Alive: true
-
+   Alive: true
 ......
-
-***2\. row***
-
-Name: 172.26.108.174_9010_1584965098874
-
-IP: 172.26.108.174
-
+********************* 2. row **********************
+    Name: 172.26.108.174_9010_1584965098874
+      IP: 172.26.108.174
 HostName: starrocks-sandbox02
-
 ......
-
-Role: FOLLOWER
-
+    Role: FOLLOWER
 IsMaster: false
-
 ......
-
-Alive: true
-
+   Alive: true
 ......
-
-***3\. row***
-
-Name: 172.26.108.175_9010_1584965098874
-
-IP: 172.26.108.175
-
+********************* 3. row **********************
+    Name: 172.26.108.175_9010_1584965098874
+      IP: 172.26.108.175
 HostName: starrocks-sandbox03
-
 ......
-
-Role: FOLLOWER
-
+    Role: FOLLOWER
 IsMaster: false
-
 ......
-
-Alive: true
-
+   Alive: true
 ......
-
 3 rows in set (0.05 sec)
 ```
 
@@ -351,52 +306,30 @@ bin/start_be.sh --daemon
 第四步: 查看BE状态, 确认BE就绪:
 
 ```Plain Text
-mysql> SHOW PROC '/backends'\\G
+mysql> SHOW PROC '/backends'\G
 
-***1\. row***
-
-BackendId: 10002
-
-Cluster: default\_cluster
-
-IP: 172.16.139.24
-
-HostName: starrocks-sandbox01
-
-HeartbeatPort: 9050
-
-BePort: 9060
-
-HttpPort: 8040
-
-BrpcPort: 8060
-
-LastStartTime: 2020-03-23 20:19:07
-
-LastHeartbeat: 2020-03-23 20:34:49
-
-Alive: true
-
-SystemDecommissioned: false
-
+********************* 1. row **********************
+            BackendId: 10002
+              Cluster: default_cluster
+                   IP: 172.16.139.24
+             HostName: starrocks-sandbox01
+        HeartbeatPort: 9050
+               BePort: 9060
+             HttpPort: 8040
+             BrpcPort: 8060
+        LastStartTime: 2020-03-23 20:19:07
+        LastHeartbeat: 2020-03-23 20:34:49
+                Alive: true
+ SystemDecommissioned: false
 ClusterDecommissioned: false
-
-TabletNum: 0
-
-DataUsedCapacity: .000
-
-AvailCapacity: 327.292 GB
-
-TotalCapacity: 450.905 GB
-
-UsedPct: 27.41 %
-
-MaxDiskUsedPct: 27.41 %
-
-ErrMsg:
-
-Version:
-
+            TabletNum: 0
+     DataUsedCapacity: .000
+        AvailCapacity: 327.292 GB
+        TotalCapacity: 450.905 GB
+              UsedPct: 27.41 %
+       MaxDiskUsedPct: 27.41 %
+               ErrMsg:
+              Version:
 1 row in set (0.01 sec)
 ```
 
@@ -416,7 +349,7 @@ W0708 17:16:27.308156 11473 heartbeat\_server.cpp:82\] backend ip saved in maste
 此时需要，先用以下命令drop掉原来加进去的be，然后重新以正确的IP添加BE。
 
 ```sql
-mysql> ALTER SYSTEM DROP BACKEND "172.16.139.24:9050";
+mysql> ALTER SYSTEM DROPP BACKEND "172.16.139.24:9050";
 ```
 
 <br/>
@@ -472,7 +405,7 @@ echo 0 | sudo tee /proc/sys/vm/swappiness
 
 * **Compaction相关**
 
-当使用聚合表或更新模型，导入数据比较快的时候，可改下列参数以加速compaction。
+当使用聚合表或更新模型，导入数据比较快的时候，可在配置文件 `be.conf` 中修改下列参数以加速compaction。
 
 ```shell
 cumulative_compaction_num_threads_per_disk = 4
@@ -587,7 +520,7 @@ StarRocks支持支持单分区和复合分区两种建表方式。
 2. 建立单分区表建立一个名字为table1的逻辑表。使用全hash分桶，分桶列为siteid，桶数为10。这个表的schema如下：
 
 * siteid：类型是INT（4字节）, 默认值为10
-* cidy_code：类型是SMALLINT（2字节）
+* city_code：类型是SMALLINT（2字节）
 * username：类型是VARCHAR, 最大长度为32, 默认值为空字符串
 * pv：类型是BIGINT（8字节）, 默认值是0; 这是一个指标列, StarRocks内部会对指标列做聚合操作, 这个列的聚合方法是求和（SUM）。这里采用了聚合模型，除此之外StarRocks还支持明细模型和更新模型，具体参考[数据模型介绍](../table_design/Data_model.md)。
 
@@ -613,7 +546,7 @@ PROPERTIES("replication_num" = "1");
 
 * event_day：类型是DATE，无默认值
 * siteid：类型是INT（4字节）, 默认值为10
-* cidy_code：类型是SMALLINT（2字节）
+* city_code：类型是SMALLINT（2字节）
 * username：类型是VARCHAR, 最大长度为32, 默认值为空字符串
 * pv：类型是BIGINT（8字节）, 默认值是0; 这是一个指标列, StarRocks 内部会对指标列做聚合操作, 这个列的聚合方法是求和（SUM）
 
@@ -693,3 +626,7 @@ mysql> desc table2;
 +-----------+-------------+------+-------+---------+-------+
 5 rows in set (0.00 sec)
 ```
+
+## 使用Docker进行编译
+
+具体参考[在容器内编译](../administration/Build_in_docker.md)。

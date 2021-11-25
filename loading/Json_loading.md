@@ -32,10 +32,45 @@ curl -v --location-trusted -u root: \
 
 * jsonpaths : 选择每一列的json路径
 * json\_root : 选择json开始解析的列
-* strip\_outer\_array ： 裁剪最外面的 array 字段
+* strip\_outer\_array ： 裁剪最外面的 array 字段（可以见下一个样例）
 * strict\_mode：导入过程中的列类型转换进行严格过滤
+* columns:对应StarRocks表中的字段的名称
 
-对于Json数据和StarRocks数据schema不完全一致的情况，我们可以通过修改Jsonpath等方式来进行导入
+jsonpaths参数和columns参数还有StarRocks表中字段三者关系如下：
+
+* jsonpaths的值名称与json文件中的key的名称一致
+* columns的值的名称和StarRocks表中字段名称保持一致
+* columns和jsonpaths属性的值，名称不需要保持一致(建议设置为一致方便区分)，值的顺序保持一致就可以将json文件中的value和StarRocks表中字段对应起来，如下图：
+
+![streamload](../assets/4.8.1.png)
+
+样例数据：
+
+~~~json
+{"name": "北京", "code": 2}
+~~~
+
+导入示例：
+
+~~~bash
+curl -v --location-trusted -u root: \
+    -H "format: json" -H "jsonpaths: [\"$.name\", \"$.code\"]" \
+    -H "columns: city,tmp_id, id = tmp_id * 100" \
+    -T jsontest.json \
+    http://127.0.0.1:8030/api/test/testJson/_stream_load
+~~~
+
+导入后结果
+
+~~~plain text
++------+------+
+|  id  | city |
++------+------+
+|  200 | 北京 |
++------+------+
+~~~
+
+如果想先对Json中数据进行加工，然后再落入StarRocks表中，可以通过更改columns的值来实现，属性的对应关系可以参考上图中描述，示例如下:
 
 样例数据：
 
@@ -59,13 +94,15 @@ curl -v --location-trusted -u root: \
 
 ~~~plain text
 +------+------+
-| k1   | k2   |
+|  k1  |  k2  |
 +------+------+
-|  100 |    2 |
+|  100 |  2   |
 +------+------+
 ~~~
 
-对于缺失的列 如果列的定义是nullable，那么会补上NULL，也可以通过ifnull补充默认值
+<br>
+
+对于缺失的列 如果列的定义是nullable，那么会补上NULL，也可以通过ifnull补充默认值。
 
 样例数据：
 
@@ -76,6 +113,8 @@ curl -v --location-trusted -u root: \
     {"k1": 3, "k2": "c"},
 ]
 ~~~
+
+> 这里最外层有一对表示 json array 的中括号 `[ ]`，导入时就需要指定 `strip_outer_array = true`
 
 导入示例-1：
 
@@ -90,13 +129,13 @@ curl -v --location-trusted -u root: \
 
 ~~~plain text
 +------+------+
-| k1   | k2   |
+|  k1  | k2   |
 +------+------+
-|    1 | a    |
+|   1  | a    |
 +------+------+
-|    2 | NULL |
+|   2  | NULL |
 +------+------+
-|    3 | c    |
+|   3  | c    |
 +------+------+
 ~~~
   
@@ -115,13 +154,13 @@ curl -v --location-trusted -u root: \
 
 ~~~plain text
 +------+------+
-| k1   | k2   |
+|  k1  |  k2  |
 +------+------+
-|    1 | a    |
+|  1   |  a   |
 +------+------+
-|    2 | x    |
+|  2   |  x   |
 +------+------+
-|    3 | c    |
+|  3   |  c   |
 +------+------+
 ~~~
 
@@ -336,7 +375,7 @@ canal.mq.transaction = false
 }
 ~~~
 
-这里我们只需要导入data中的数据， 所以需要加上 json_root 和 strip_outer_array = true
+这里我们只需要导入data中的数据，所以需要加上 json_root 和 strip_outer_array = true
 
 ~~~sql
 create routine load manual.query_job on query_record   

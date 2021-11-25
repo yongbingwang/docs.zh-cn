@@ -35,7 +35,7 @@ Colocation Join 功能，是将一组拥有相同 CGS 的 Table 组成一个 CG�
 2. Parent Table 中所有 Partition 的 Bucket Seq 和 BE 节点的映射关系和第一个 Partition 一致。
 3. Parent Table 第一个 Partition 的 Bucket Seq 和 BE 节点的映射关系利用原生的 Round Robin 算法决定。
 
-CG内表的一致的数据分布定义和子表副本映射，能够保证分桶键取值相同的数据行一定在相同BE上，因此当分统键做join列时，只需本地join即可。
+CG内表的一致的数据分布定义和子表副本映射，能够保证分桶键取值相同的数据行一定在相同BE上，因此当分桶键做join列时，只需本地join即可。
 
 <br/>
 
@@ -114,7 +114,7 @@ SHOW PROC '/colocation_group/10005.10008';
 * **BucketIndex**：分桶序列的下标。
 * **BackendIds**：分桶中数据分片所在的 BE 节点 id 列表。
 
-> 注意：以上命令需要 AMDIN 权限。暂不支持普通用户查看。
+> 注意：以上命令需要 ADMIN 权限。暂不支持普通用户查看。
 
 <br/>
 
@@ -414,7 +414,7 @@ StarRocks 提供了几个和 Colocation Join 有关的 HTTP Restful API，用于
 
 3. 设置 Group 的数据分布
 
-    该接口可以强制设置某一 Group 的数分布。
+    该接口可以强制设置某一 Group 的数据分布。
 
     `POST /api/colocate/bucketseq?db_id=10005&group_id= 10008`
 
@@ -424,6 +424,6 @@ StarRocks 提供了几个和 Colocation Join 有关的 HTTP Restful API，用于
 
     `返回：200`
 
-    其中 Body 是以嵌套数组表示的 BucketsSequence 以及每个 Bucket 中分片分布所在 BE 的 id。
+    其中 Body 是以嵌套数组表示的 BucketsSequence 以及每个 Bucket 中分片所在 BE 的 id。
 
     > 注意，使用该命令，可能需要将 FE 的配置 disable_colocate_relocate 和 disable_colocate_balance 设为 true。即关闭系统自动的 Colocation 副本修复和均衡。否则可能在修改后，会被系统自动重置。

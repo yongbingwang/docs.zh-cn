@@ -1,6 +1,6 @@
 # 外部表
 
-StarRocks 支持以外部表的形式，接入其他数据源。外部表指的是保存在其他数据源中的数据表，而 StartRocks 只保存表对应的元数据，并直接向外部表所在数据源发起查询。目前 StarRocks 已支持的第三方数据源包括 MySQL、HDFS、ElasticSearch、Hive。对这几种种数据源，**现阶段只支持读取，还不支持写入**。
+StarRocks 支持以外部表的形式，接入其他数据源。外部表指的是保存在其他数据源中的数据表，而 StartRocks 只保存表对应的元数据，并直接向外部表所在数据源发起查询。目前 StarRocks 已支持的第三方数据源包括 MySQL、ElasticSearch、Hive以及StarRocks。**对于StarRocks数据源，现阶段只支持Insert写入，不支持读取，对于其他数据源，现阶段只支持读取，还不支持写入**。
 
 <br/>
 
@@ -44,42 +44,6 @@ PROPERTIES
 
 <br/>
 
-## HDFS外部表
-
-与访问MySQL类似，StarRocks访问HDFS文件之前，也需提前建立好与之相对应的外部表，如下图。
-
-~~~sql
-CREATE EXTERNAL TABLE hdfs_external_table (
-    k1 DATE,
-    k2 INT,
-    k3 SMALLINT,
-    k4 VARCHAR(2048),
-    k5 DATETIME
-)
-ENGINE=broker
-PROPERTIES (
-    "broker_name" = "broker_name",
-    "path" = "hdfs://hdfs_host:hdfs_port/data1",
-    "column_separator" = "|",
-    "line_delimiter" = "\n"
-)
-BROKER PROPERTIES (
-    "username" = "hdfs_username",
-    "password" = "hdfs_password"
-)
-~~~
-
-参数说明：
-
-* **broker_name**：Broker名字
-* **path**：HDFS文件路径
-* **column_separator**：列分隔符
-* **line_delimiter**：行分隔符
-
-StarRocks不能直接访问HDFS文件，需要通过Broker进行访问。所以，建表时除了需要指定HDFS文件的相关信息之外，还需要指定Broker的相关信息。关于Broker的相关介绍，可以参见[Broker导入](../loading/BrokerLoad.md)。
-
-<br/>
-
 ## ElasticSearch外部表
 
 StarRocks与ElasticSearch都是目前流行的分析系统，StarRocks强于大规模分布式计算，ElasticSearch擅长全文检索。StarRocks支持ElasticSearch访问的目的，就在于将这两种能力结合，提供更完善的一个OLAP解决方案。
@@ -120,7 +84,7 @@ PROPERTIES (
 
 ### 谓词下推
 
-StarRocks支持对ElasticSearch表进行谓词下推，把过滤条件推给ElasticSearch进行执行，让执行尽量靠近存储，提高查询性能。目前支持哪些下推的算子如下表：
+StarRocks支持对ElasticSearch表进行谓词下推，把过滤条件推给ElasticSearch进行执行，让执行尽量靠近存储，提高查询性能。目前支持下推的算子如下表：
 
 |   SQL syntax  |   ES syntax  |
 | :---: | :---: |
@@ -216,7 +180,7 @@ select * from es_table where esquery(k4, ' {
 
 ### 创建Hive资源
 
-一个Hive资源对应一个Hive集群，管理StarRocks使用的Hive集群相关配置，如Hive meta store地址等。创建Hive外表的时候需要指定使用哪个Hive资源。
+StarRocks使用Hive资源来管理使用到的Hive集群相关配置，如Hive Metastore地址等，一个Hive资源对应一个Hive集群。创建Hive外表的时候需要指定使用哪个Hive资源。
 
 ~~~sql
 -- 创建一个名为hive0的Hive资源
@@ -297,12 +261,13 @@ PROPERTIES (
     | --- | --- | ---|
     |   INT/INTEGER  | INT    |
     |   BIGINT  | BIGINT    |
-    |   TIMESTAMP  | DATETIME    |Timestamp转成Datetime，会损失精度和时区信息，<br/>根据sessionVariable中的时区转成无时区Datatime|
+    |   TIMESTAMP  | DATETIME    |TIMESTAMP转成DATETIME，会损失精度和时区信息，<br/>根据sessionVariable中的时区转成无时区Datatime|
     |  STRING  | VARCHAR   |
     |  VARCHAR  | VARCHAR   |
     |  CHAR  | CHAR   |
     |  DOUBLE | DOUBLE |
     | FLOATE | FLOAT|
+    | DECIMAL | DECIMAL |
 
     说明：
 
@@ -326,6 +291,111 @@ select count(*) from profile_wos_p7;
 * fe配置文件路径为fe/conf，如果需要自定义hadoop集群的配置可以在该目录下添加配置文件，例如：hdfs集群采用了高可用的nameservice，需要将hadoop集群中的hdfs-site.xml放到该目录下，如果hdfs配置了viewfs，需要将core-site.xml放到该目录下。
 * be配置文件路径为be/conf，如果需要自定义hadoop集群的配置可以在该目录下添加配置文件，例如：hdfs集群采用了高可用的nameservice，需要将hadoop集群中的hdfs-site.xml放到该目录下，如果hdfs配置了viewfs，需要将core-site.xml放到该目录下。
 * be所在的机器也需要配置JAVA_HOME，一定要配置成jdk环境，不能配置成jre环境
-* kerbero 支持：
+* kerberos 支持：
   1. 在所有的fe/be机器上用`kinit -kt keytab_path principal`登陆，该用户需要有访问hive和hdfs的权限。kinit命令登陆是有实效性的，需要将其放入crontab中定期执行。
   2. 把hadoop集群中的hive-site.xml/core-site.xml/hdfs-site.xml放到fe/conf下，把core-site.xml/hdfs-site.xml放到be/conf下。
+  3. 在fe/conf/fe.conf文件中的JAVA_OPTS/JAVA_OPTS_FOR_JDK_9选项加上 -Djava.security.krb5.conf:/etc/krb5.conf，/etc/krb5.conf是krb5.conf文件的路径，可以根据自己的系统调整。
+  4. resource中的uri地址一定要使用域名，并且相应的hive和hdfs的域名与ip的映射都需要配置到/etc/hosts中。
+* S3 支持:
+  在fe/conf/core-site.xml和be/conf/core-site.xml中加入如下配置即可
+
+~~~xml
+<configuration>
+   <property>
+      <name>fs.s3a.access.key</name>
+      <value>******</value>
+   </property>
+   <property>
+      <name>fs.s3a.secret.key</name>
+      <value>******</value>
+   </property>
+   <property>
+      <name>fs.s3a.endpoint</name>
+      <value>s3.us-west-2.amazonaws.com</value>
+   </property>
+   <property>
+     <name>fs.s3a.connection.maximum</name>
+     <value>500</value>
+   </property>
+</configuration>
+~~~
+
+  1. `fs.s3a.access.key` 指定aws的access key id
+  2. `fs.s3a.secret.key` 指定aws的secret access key
+  3. `fs.s3a.endpoint` 指定aws的区域
+  4. `fs.s3a.connection.maximum` 配置最大链接数，如果查询过程中有报错`Timeout waiting for connection from poll`，可以适当调高该参数
+
+### 缓存更新
+
+* hive的partition信息以及partition对应的文件信息都会缓存在starrocks中，缓存的刷新时间为hive_meta_cache_refresh_interval_s，默认7200，缓存的失效时间为hive_meta_cache_ttl_s，默认86400。
+
+* 也可以手动刷新元数据信息：
+  1. hive中新增或者删除分区时，需要刷新**表**的元数据信息：`REFRESH EXTERNAL TABLE hive_t`，其中hive_t是starrocks中的外表名称。
+  2. hive中向某些partition中新增数据时，需要**指定partition**进行刷新：`REFRESH EXTERNAL TABLE hive_t PARTITION ('k1=01/k2=02', 'k1=03/k2=04')`，其中hive_t是starrocks中的外表名称，'k1=01/k2=02'、 'k1=03/k2=04'是hive中的partition名称。
+
+## StarRocks外部表
+
+1.19版本开始，StarRocks支持将数据通过外表方式写入另一个StarRocks集群的表中。这可以解决用户的读写分离需求，提供更好的资源隔离。用户需要首先在目标集群上创建一张目标表，然后在源StarRocks集群上创建一个Schema信息一致的外表，并在属性中指定目标集群和表的信息。
+
+通过insert into 写入数据至StarRocks外表,可以实现如下目标:
+
+* 集群间的数据同步
+* 在外表集群计算结果写入目标表集群，并在目标表集群提供查询服务，实现读写分离
+
+以下是创建目标表和外表的实例：
+
+~~~sql
+# 在目标集群上执行
+CREATE TABLE t
+(
+    k1 DATE,
+    k2 INT,
+    k3 SMALLINT,
+    k4 VARCHAR(2048),
+    k5 DATETIME
+)
+ENGINE=olap
+DISTRIBUTED BY HASH(k1) BUCKETS 10;
+
+# 在外表集群上执行
+CREATE EXTERNAL TABLE external_t
+(
+    k1 DATE,
+    k2 INT,
+    k3 SMALLINT,
+    k4 VARCHAR(2048),
+    k5 DATETIME
+)
+ENGINE=olap
+DISTRIBUTED BY HASH(k1) BUCKETS 10
+PROPERTIES
+(
+    "host" = "127.0.0.1",
+    "port" = "9030",
+    "user" = "user",
+    "password" = "passwd",
+    "database" = "db_test",
+    "table" = "t"
+);
+
+# 向外表插入数据,线上推荐使用第二种方式
+insert into external_t values ('2020-10-11', 1, 1, 'hello', '2020-10-11 10:00:00');
+
+insert into external_t select * from other_table;
+~~~
+
+其中：
+
+* **EXTERNAL**：该关键字指定创建的是StarRocks外表
+* **host**：该属性描述目标表所属StarRocks集群Master FE的IP地址
+* **port**：该属性描述目标表所属StarRocks集群Master FE的RPC访问端口，该值可参考配置fe/fe.conf中的rpc_port配置取值
+* **user**：该属性描述目标表所属StarRocks集群的访问用户名
+* **password**：该属性描述目标表所属StarRocks集群的访问密码
+* **database**：该属性描述目标表所属数据库名称
+* **table**：该属性描述目标表名称
+
+目前StarRocks外表使用上有以下限制：
+
+* 仅可以在外表上执行insert into 和show create table操作，不支持其他数据写入方式，也不支持查询和DDL
+* 创建外表语法和创建普通表一致，但其中的列名等信息请保持同其对应的目标表一致
+* 外表会周期性从目标表同步元信息（同步周期为10秒），在目标表执行的DDL操作可能会延迟一定时间反应在外表上

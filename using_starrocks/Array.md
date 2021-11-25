@@ -18,16 +18,18 @@
 -- 一维数组
 create table t0(
   c0 INT,
-  c1 `ARRAY<INT>`
+  c1 ARRAY<INT>
 )
-duplicate key(c0);
+duplicate key(c0)
+distributed by hash(c0) buckets 3;  -- 以分3个桶为例。
 
 -- 定义嵌套数组
 create table t1(
   c0 INT,
-  c1 `ARRAY<ARRAY<VARCHAR(10)>>`
+  c1 ARRAY<ARRAY<VARCHAR(10)>>
 )
-duplicate key(c0);
+duplicate key(c0)
+distributed by hash(c0) buckets 3;
 ~~~
 
 如上，数组列的定义形式为 `ARRAY`，其中 TYPE 是数组元素类型，默认 nullable，暂时不支持指定元素类型为 NOT NULL，但是可以定义数组本身为 NOT NULL。
@@ -35,9 +37,10 @@ duplicate key(c0);
 ~~~SQL
 create table t2(
   c0 INT,
-  c1 `ARRAY<INT>` NOT NULL
+  c1 ARRAY<INT> NOT NULL
 )
 duplicate key(c0)
+distributed by hash(c0) buckets 3;
 ~~~
 
 数组类型有以下限制
@@ -69,8 +72,8 @@ select [12, "100"]; -- 结果是 ["12", "100"]
 可以使用尖括号(`<>`)显示声明数组类型
 
 ~~~SQL
-select `ARRAY<float>`[1, 2];
-select `ARRAY<INT>`["12", "100"]; -- 结果是 [12, 100]
+select ARRAY<float>[1, 2];
+select ARRAY<INT>["12", "100"]; -- 结果是 [12, 100]
 ~~~
 
 元素中可以包含NULL
@@ -83,7 +86,7 @@ select [1, NULL];
 
 ~~~SQL
 select [];
-select `ARRAY<VARCHAR(10)>`[];
+select ARRAY<VARCHAR(10)>[];
 select array_append([], 10);
 ~~~
 
@@ -96,17 +99,17 @@ select array_append([], 10);
 * **INSERT INTO**
 
   ~~~SQL
-  create table t0(c0 INT, c1 `ARRAY<INT>`)duplicate key(c0);
+  create table t0(c0 INT, c1 ARRAY<INT>)duplicate key(c0);
   INSERT INTO t0 VALUES(1, [1,2,3]);
   ~~~
 
-* **从ORC Parquet文件导入**
+* **从ORC/Parquet文件导入**
 
   StarRocks 中的数组类型，与ORC/Parquet格式中的list结构相对应，不需要额外指定，具体请参考StarRocks 企业文档中 `broker load` 导入相关章节。当前ORC的list结构可以直接导入，Parquet格式正在开发中。
 
 * **从CSV文件导入**
 
-  CSV 文件导入数组，默认采用逗号分隔, 可以用 stream load / routine load 导入CSV文本文件或 Kafka 中的 CSV 格式数据。
+  CSV 文件导入数组，默认采用逗号分隔，可以用 stream load / routine load 导入CSV文本文件或 Kafka 中的 CSV 格式数据。
 
 <br/>
 

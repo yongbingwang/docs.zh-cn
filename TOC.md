@@ -1,5 +1,7 @@
 # 目录
 
+## 索引
+
 + [StarRocks介绍](/introduction/StarRocks_intro.md)
 + 快速开始
   + [StarRocks基本概念](/quick_start/Concepts.md)
@@ -15,7 +17,7 @@
   + [数据分布](/table_design/Data_distribution.md)
   + [排序键和shortkey index](/table_design/Sort_key.md)
   + [物化视图](/table_design/Materialized_view.md)
-  + [bitmap索引](/table_design/Bitmap_index.md)
+  + [Bitmap索引](/table_design/Bitmap_index.md)
   + [Bloomfilter索引](/table_design/Bloomfilter_index.md)
 + 数据导入
   + [导入总览](/loading/Loading_intro.md)
@@ -26,8 +28,11 @@
   + [Insert Into导入](/loading/InsertInto.md)
   + [导入过程中完成数据转换](/loading/Etl_in_loading.md)
   + [Json数据导入](/loading/Json_loading.md)
+  + [Flink connector](/loading/Flink-connector-starrocks.md)
+  + [DataX writer](/loading/DataX-starrocks-writer.md)
 + 数据提取
-  + [Export数据导出](/unloading/Export.md)
+  + [数据导出](/unloading/Export.md)
+  + [Spark Connector](/unloading/Spark_connector.md)
 + 使用StarRocks
   + [用Bitmap实现精确去重](/using_starrocks/Using_bitmap.md)
   + [用HLL实现近似去重](/using_starrocks/Using_HLL.md)
@@ -38,6 +43,8 @@
   + [窗口函数](/using_starrocks/Window_function.md)
   + [CBO优化器](/using_starrocks/Cost_based_optimizer.md)
   + [Lateral Join](/using_starrocks/Lateral_join.md)
+  + [时区](/using_starrocks/timezone.md)
+  + [文件管理器](/using_starrocks/filemanager.md)
 + 参考手册
   + SQL参考
     + 用户账户管理
@@ -147,6 +154,27 @@
       + [SPARK LOAD](/sql-reference/sql-statements/data-manipulation/SPARK%20LOAD.md)
       + [STOP ROUTINE LOAD](/sql-reference/sql-statements/data-manipulation/STOP%20ROUTINE%20LOAD.md)
       + [STREAM LOAD](/sql-reference/sql-statements/data-manipulation/STREAM%20LOAD.md)
+    + 数据类型
+      + 数字类型
+        + [BIGINT](/sql-reference/sql-statements/data-types/BIGINT.md)
+        + [LARGEINT](/sql-reference/sql-statements/data-types/LARGEINT.md)
+        + [SMALLINT](/sql-reference/sql-statements/data-types/SMALLINT.md)
+        + [TINYINT](/sql-reference/sql-statements/data-types/TINYINT.md)
+        + [BOOLEAN](/sql-reference/sql-statements/data-types/BOOLEAN.md)
+        + [DECIMAL](/sql-reference/sql-statements/data-types/DECIMAL.md)
+        + [DOUBLE](/sql-reference/sql-statements/data-types/DOUBLE.md)
+        + [FLOAT](/sql-reference/sql-statements/data-types/FLOAT.md)
+        + [INT](/sql-reference/sql-statements/data-types/INT.md)
+      + 字符串类型
+        + [CHAR](/sql-reference/sql-statements/data-types/CHAR.md)
+        + [VARCHAR](/sql-reference/sql-statements/data-types/VARCHAR.md)
+        + [STRING](/sql-reference/sql-statements/data-types/STRING.md)
+      + 日期类型
+        + [DATE](/sql-reference/sql-statements/data-types/DATE.md)
+        + [DATETIME](/sql-reference/sql-statements/data-types/DATETIME.md)
+      + 其他类型
+        + [HLL](/sql-reference/sql-statements/data-types/HLL.md)
+        + [BITMAP](/sql-reference/sql-statements/data-types/BITMAP.md)
     + 辅助命令
       + [DESCRIBE](/sql-reference/sql-statements/Utility/DESCRIBE.md)
   + 函数参考
@@ -222,6 +250,7 @@
       + [reverse](/sql-reference/sql-functions/string-functions/reverse.md)
       + [right](/sql-reference/sql-functions/string-functions/right.md)
       + [rpad](/sql-reference/sql-functions/string-functions/rpad.md)
+      + [split](/sql-reference/sql-functions/string-functions/split.md)
       + [split_part](/sql-reference/sql-functions/string-functions/split_part.md)
       + [starts_with](/sql-reference/sql-functions/string-functions/starts_with.md)
       + [strleft](/sql-reference/sql-functions/string-functions/strleft.md)
@@ -269,6 +298,7 @@
   + [错误码](/reference/Error_code.md)
   + [系统限制](/reference/System_limit.md)
 + 管理手册
+  + [在容器内编译](/administration/Build_in_docker.md)
   + [集群部署](/administration/Deployment.md)
   + [集群管理](/administration/Cluster_administration.md)
   + [配置参数](/administration/Configuration.md)
@@ -288,8 +318,7 @@
     + [黑名单管理](/administration/Blacklist.md)
     + [内存管理](/administration/Memory_management.md)
     + [负载均衡](/administration/Load_balance.md)
-+ FAQ
-  + [产品FAQ](/faq/Product_faq.md)
++ 常见问题解答
   + [部署运维](/faq/Deploy_faq.md)
   + 数据迁移
     + 导入
@@ -308,3 +337,5 @@
   + [其他](/faq/Others.md)
 + 性能测试
   + [SSB性能测试](/benchmarking/SSB_Benchmarking.md)
++ Release Notes
+  + [v1.19](/release_notes/release-1.19.md)

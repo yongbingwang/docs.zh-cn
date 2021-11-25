@@ -250,7 +250,7 @@ scrape_configs:
         labels:
           group: fe # 这里配置了 fe 的 group，该 group 中包含了 3 个 Frontends
 
-      - targets: ['be_host1:http_port', 'be_host2:http_port', 'be_host3:http_port']
+      - targets: ['be_host1:webserver_port', 'be_host2:webserver_port', 'be_host3:webserver_port']
         labels:
           group: be # 这里配置了 be 的 group，该 group 中包含了 3 个 Backends
   - job_name: 'StarRocks_Cluster02' # 可以在Prometheus中监控多个StarRocks集群
@@ -261,7 +261,7 @@ scrape_configs:
         labels:
           group: fe
 
-      - targets: ['be_host1:http_port', 'be_host2:http_port', 'be_host3:http_port']
+      - targets: ['be_host1:webserver_port', 'be_host2:webserver_port', 'be_host3:webserver_port']
         labels:
           group: be
 ```
@@ -338,7 +338,13 @@ Data Source配置简介
 
 **2.** 添加Dashboard
 
-[Dashboard模版下载](http://starrocks-thirdparty.oss-cn-zhangjiakou.aliyuncs.com/StarRocks-Overview.json?Expires=4784940342&OSSAccessKeyId=LTAI4GFYjbX9e7QmFnAAvkt8&Signature=JJ5u%2BNBNX2g1pfzvql6xxqubAxI%3D)，Dashboard模版会不定期更新。欢迎提供更优的Dashboard。
+`注：StarRocks-1.19.0版本及其之后的版本监控Metric name有调整，需要下载下面 StarRocks-1.19.0+版本DashBoard模版`
+
+[Dashboard模版下载](http://starrocks-thirdparty.oss-cn-zhangjiakou.aliyuncs.com/StarRocks-Overview.json)
+
+[StarRocks-1.19.0版本及其之后版本DashBoard模版下载](http://starrocks-thirdparty.oss-cn-zhangjiakou.aliyuncs.com/StarRocks-Overview-19.json)
+
+Dashboard模版会不定期更新。欢迎提供更优的Dashboard。
 
 确认数据源可用后，点击左边导航栏的 + 号，开始添加 Dashboard。这里我们使用上文下载的 StarRocks 的 Dashboard 模板。点击 `左边的导航栏 + 号 -> Import -> Upload Json File`，将下载的 json 文件导入。
 导入后，可以命名 Dashboard，默认是 StarRocks Overview。同时，需要选择数据源，这里选择之前创建的 starrocks_monitor。

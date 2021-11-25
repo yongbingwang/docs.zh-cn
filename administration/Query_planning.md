@@ -8,7 +8,7 @@
 
 SQL语句在StarRocks中的生命周期可以分为查询解析(Query Parsing)、规划(Query Plan)、执行(Query Execution)三个阶段。对于StarRocks而言，查询解析一般不会成为瓶颈，因为分析型需求的QPS普遍不高。
 
-决定StarRocks中查询性能的关键就在于查询规划(Query Plan)和查询执行(Query Execution)，二者的关系可以用一句户描述：Query Plan负责组织算子(Join/Order/Aggregation)之间的关系，Query Exectuion负责执行具体算子。
+决定StarRocks中查询性能的关键就在于查询规划(Query Plan)和查询执行(Query Execution)，二者的关系可以用一句话描述：Query Plan负责组织算子(Join/Order/Aggregation)之间的关系，Query Exectuion负责执行具体算子。
 
 Query Plan可以从宏观的角度提供给DBA一个视角，获取Query执行的相关信息。一个好的Query Plan很大程度上决定了查询的性能，所以DBA经常需要去查看Query Plan，确定Query Plan是否生成得当。本章以TPCDS的query96为例，展示如何查看StarRocks的Query Plan。
 
@@ -185,11 +185,11 @@ Query96的Query Plan分为五个Plan Fragment，编号从0~4。阅读Query Plan�
 
 上图中最底部的Plan Fragment为Fragment 4，它负责扫描time_dim表，并提前执行相关查询条件time_dim.t_hour = 8 and time_dim.t_minute >= 30，也就是大家所熟知的谓词下推。对于聚合表(Aggregate Key)，StarRocks会根据不同查询选择是否开启PREAGGREGATION，上图中time_dim的预聚合为关闭状态，关闭状态之下会读取time_dim的全部维度列，当表中维度列多的时候，这个可能会成为影响性能的一个关键因素。如果time_dim表有选择Range Partition进行数据划分，Query Plan中的partitions会表征查询命中几个分区，无关分区被自动过滤会有效减少扫描数据量。如果有物化视图，StarRocks会根据查询去自动选择物化视图，如果没有物化视图，那么查询自动命中base table，也就是上图中展示的rollup: time_dim。其他字段可以暂时不用关注。
 
-当time_dim数据扫描完成之后，Fragment 4的执行过程也就随之结束，此时它将扫描得到的数据传递给你其他Fragment，上图中的EXCHANGE ID : 09表征了数据传递给了标号为9的接收节点。
+当time_dim数据扫描完成之后，Fragment 4的执行过程也就随之结束，此时它将扫描得到的数据传递给其他Fragment，上图中的EXCHANGE ID : 09表征了数据传递给了标号为9的接收节点。
 
-对于Query96的Query Plan而言，Fragment 2, 3, 4功能类似，只是负责扫描的表不同。具体到查询中的Order/Aggregation/Join算子，都在Fragment 1中进行，下面着重介绍Fragment 1。
+对于Query96的Query Plan而言，Fragment 2， 3， 4功能类似，只是负责扫描的表不同。具体到查询中的Order/Aggregation/Join算子，都在Fragment 1中进行，下面着重介绍Fragment 1。
 
-Fragment 1集成了三个Join算子的执行，采用默认的BROADCAST方式进行执行，也就是小表向大表广播的方式进行，如果两个Join的表都是大表，建议采用SHUFFLE的方式进行。目前StarRocks只支持HASH JOIN，也就是采用哈希算法进行Join。图中有一个colocate字段，这个用来表述两张Join表采用同样的分区/分桶方式，如此执行Join的过程中可以直接在本地执行，不用进行数据的移动。Join执行完成之后，就是执行上成的Aggregation, Order by和TOP-N的算子，Query96的上述上个算子都比较浅显易懂，十分容易弄懂。
+Fragment 1集成了三个Join算子的执行，采用默认的BROADCAST方式进行执行，也就是小表向大表广播的方式进行，如果两个Join的表都是大表，建议采用SHUFFLE的方式进行。目前StarRocks只支持HASH JOIN，也就是采用哈希算法进行Join。图中有一个colocate字段，这个用来表述两张Join表采用同样的分区/分桶方式，如此，Join的过程可以直接在本地执行，不用进行数据的移动。Join执行完成之后，就是执行上层的Aggregation、Order by和TOP-N的算子，Query96的上述上个算子都比较浅显易懂，十分容易弄懂。
 
 至此，关于Query96的Query Plan的解释就告一段落，去掉具体的表达式，只保留算子的话，Query Plan可以以一个更加宏观的角度展示，就是下图。
 
@@ -223,7 +223,7 @@ order by o_orderpriority;
 
 ![8-6](../assets/8-6.png)
   
-左上角我们能看到整个查询执行了3.106s， 点击每个节点可以看到每一部分的执行信息，Active 表示这个节点（包含其所有子节点）的时间，整体结构上可以看到最下面的子节点是两个scan node，他们分别scan了 573万和3793万数据，然后进行了一次shuffle join，完成后输出525万条数据，然后经过两层聚合，最后通过一个Sort Node后输出结果，其中Exchange node是数据交换节点，在这个case中是进行了两次Shuffle。
+左上角我们能看到整个查询执行了3.106s，点击每个节点可以看到每一部分的执行信息，Active 表示这个节点（包含其所有子节点）的时间，整体结构上可以看到最下面的子节点是两个scan node，他们分别scan了 573万和3793万数据，然后进行了一次shuffle join，完成后输出525万条数据，然后经过两层聚合，最后通过一个Sort Node后输出结果，其中Exchange node是数据交换节点，在这个case中是进行了两次Shuffle。
 
 一般分析Profile的核心就是找到执行时间最长的性能瓶颈所在的节点，比如我们可以从上往下依次查看，可以看到这个Hash Join Node占了主要时间：
 

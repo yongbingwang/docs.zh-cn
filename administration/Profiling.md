@@ -4,9 +4,9 @@
 
 ### 数据模型选择
 
-StarRocks数据模型目前分为三类: AGGREGATE KEY, UNIQUE KEY, DUPLICATE KEY。三种模型中数据都是按KEY进行排序。
+StarRocks数据模型目前分为三类: AGGREGATE KEY， UNIQUE KEY， DUPLICATE KEY。三种模型中数据都是按KEY进行排序。
 
-* AGGREGATE KEY: AGGREGATE KEY相同时，新旧记录进行聚合，目前支持的聚合函数有SUM, MIN, MAX, REPLACE。 AGGREGATE KEY模型可以提前聚合数据, 适合报表和多维分析业务。
+* AGGREGATE KEY: AGGREGATE KEY相同时，新旧记录进行聚合，目前支持的聚合函数有SUM， MIN， MAX， REPLACE。 AGGREGATE KEY模型可以提前聚合数据，适合报表和多维分析业务。
 
 ~~~sql
 CREATE TABLE site_visit
@@ -102,12 +102,13 @@ PROPERTIES(
 
 ### 大宽表与star schema
 
-业务方建表时, 为了和前端业务适配, 往往不对维度信息和指标信息加以区分, 而将schema定义成大宽表。对于StarRocks而言, 这类大宽表往往性能不尽如人意:
+业务方建表时, 为了和前端业务适配, 传统建模方式直接将schema定义成大宽表。对于StarRocks而言, 可以选择更灵活的星型模型来替代大宽表，比如用一个视图来取代宽表进行建模，直接使用多表关联来查询，比如在SSB的标准测试集的对比中，StarRocks的多表关联性能比单表查询下降并不太多。然后相比星型模型，宽表的缺点有：
 
-* schema中字段数比较多, 聚合模型中可能key列比较多, 导入过程中需要排序的列会增加。
-* 维度信息更新会反应到整张表中，而更新的频率直接影响查询的效率。
+1. 维度信息更新会反应到整张表中，而更新的频率直接影响查询的效率，宽表的更新成本。
+2. 宽表的建设需要额外的开发工作、存储空间和数据backfill的成本。
+3. schema中字段数比较多, 聚合模型中可能key列比较多, 导入过程中需要排序的列会增加，导致导入时间变长。
 
-使用过程中，建议用户尽量使用star schema区分维度表和指标表。频繁更新的维度表可以放在mysql中, 而如果只有少量更新, 可以直接放在StarRocks中。在StarRocks中存储维度表时，可对维度表设置更多的副本，提升join的的性能。
+使用过程中，建议优先使用星型模型，可以在保证灵活的基础上获得高效的指标分析效果，但是对于有高并发或者低延迟要求的业务，还是可以选择宽表模型进行加速，StarRocks也可以提供与ClickHouse相当的宽表查询性能。
 
 ### 分区(parition)和分桶(bucket)
 
@@ -167,16 +168,16 @@ Rollup本质上可以理解为原始表(base table)的一个物化索引。建�
 
 ## 导入
 
-StarRocks目前提供broker loads和stream load两种导入方式, 通过指定导入label标识一批次的导入。StarRocks对单批次的导入会保证原子生效, 即使单次导入多张表也同样保证其原子性。
+StarRocks目前提供broker load和stream load两种导入方式， 通过指定导入label标识一批次的导入。StarRocks对单批次的导入会保证原子生效， 即使单次导入多张表也同样保证其原子性。
 
 * stream load : 通过http推的方式进行导入，微批导入。1MB数据导入延迟维持在秒级别，适合高频导入。
-* broker load : 通过拉的方式导入, 适合天级别的批量数据的导入。
+* broker load : 通过拉的方式导入， 适合天级别的批量数据的导入。
 
 ## schema change
 
-StarRocks中目前进行schema change的方式有三种，sorted schema change，direct schema change, linked schema change。
+StarRocks中目前进行schema change的方式有三种，sorted schema change，direct schema change， linked schema change。
 
-* sorted schema change: 改变了列的排序方式，需对数据进行重新排序。例如删除排序列中的一列, 字段重排序。
+* sorted schema change: 改变了列的排序方式，需对数据进行重新排序。例如删除排序列中的一列， 字段重排序。
 
     `ALTER TABLE site_visit DROP COLUMN city;`
 
